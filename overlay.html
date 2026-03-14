@@ -258,7 +258,9 @@ let revealedHints = {};
 const playerCache = {}; // username -> {nickname, profilePic}
 
 // ── WebSocket ────────────────────────────────────────────────────────────
-const WS_URL = `ws://${location.hostname||'localhost'}:${location.port||8080}`;
+const WS_URL = window.location.hostname === 'localhost'
+  ? 'ws://localhost:8080'
+  : `wss://${window.location.host}`;
 let ws = null, reconnTimer = null;
 
 function wsConnect() {
