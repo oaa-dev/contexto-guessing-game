@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TikTok Contexto</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0f;--surface:#12121c;--surface2:#1a1a28;--border:#252535;
+    --text:#eeeef4;--text2:#8888a0;--pink:#fe2c55;--orange:#ff6f3c;
+    --green:#00c853;--gold:#ffd740;--cyan:#00e5ff;--purple:#b388ff;
+    --gradient:linear-gradient(135deg,var(--pink),var(--orange));
+    --radius:12px;
+  }
+  html,body{height:100%;overflow:hidden}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+  body.obs-mode{background:transparent}
+
+  /* ── Header ── */
+  .header{background:var(--gradient);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 2px 20px rgba(254,44,85,.25)}
+  .logo{font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:1px}
+  .live-badge{background:rgba(0,0,0,.35);color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:1px}
+  .live-dot{width:7px;height:7px;background:#fff;border-radius:50%;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:#555;transition:all .3s}
+  .conn-dot.connected{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .conn-label{font-size:.7rem;color:rgba(255,255,255,.8)}
+  .header-btns{display:flex;gap:5px}
+  .btn{padding:5px 12px;border:none;border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+  .btn:active{transform:scale(.96)}
+  .btn-hint{background:var(--gold);color:#000}
+  .btn-skip{background:rgba(255,255,255,.15);color:#fff}
+  .btn-obs{background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:.6rem}
+
+  /* ── Word Display ── */
+  .word-section{padding:16px;flex-shrink:0}
+  .word-box{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center}
+  .word-label{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+  .word-blanks{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+  .letter-slot{width:36px;height:44px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:var(--cyan);font-family:monospace;transition:all .3s}
+  .letter-slot.revealed{border-color:var(--gold);color:var(--gold);background:rgba(255,215,64,.08)}
+  .word-meta{margin-top:10px;font-size:.75rem;color:var(--text2);display:flex;justify-content:center;gap:16px}
+  .word-meta span{display:flex;align-items:center;gap:4px}
+
+  /* ── Stats ── */
+  .stats-row{display:flex;gap:8px;padding:0 16px;flex-shrink:0}
+  .stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px;text-align:center}
+  .stat .num{font-size:1.3rem;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .stat .lbl{font-size:.55rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+
+  /* ── Countdown ── */
+  .countdown{background:var(--surface);border:1px solid var(--cyan);border-radius:var(--radius);margin:0 16px;padding:10px;text-align:center;font-size:.85rem;font-weight:700;color:var(--cyan);display:none}
+  .countdown.visible{display:block}
+
+  /* ── Best Guess ── */
+  .best-guess{margin:10px 16px 0;background:linear-gradient(135deg,rgba(254,44,85,.08),rgba(255,111,60,.08));border:1px solid rgba(254,44,85,.2);border-radius:var(--radius);padding:10px 14px;display:none;align-items:center;gap:10px}
+  .best-guess.visible{display:flex}
+  .best-guess .avatar{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:2px solid var(--pink);object-fit:cover;flex-shrink:0}
+  .best-guess .rank-num{font-size:1.6rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;min-width:46px;text-align:center}
+  .best-guess .info{flex:1;min-width:0}
+  .best-guess .word{font-size:1rem;font-weight:700}
+  .best-guess .player-name{font-size:.7rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ── Tabs (mobile) ── */
+  .tabs{display:none;padding:8px 16px 0;gap:0;flex-shrink:0}
+  .tab{flex:1;text-align:center;padding:8px;font-size:.75rem;font-weight:700;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+  .tab.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+  /* ── Content area ── */
+  .content{flex:1;display:flex;overflow:hidden;min-height:0;padding:10px 16px 16px;gap:12px}
+
+  /* ── Leaderboard ── */
+  .lb-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .lb-title{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding-bottom:6px;flex-shrink:0}
+  .lb-list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .lb-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);transition:all .25s;animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+  .lb-item.top-1{border-color:rgba(255,215,64,.3);background:rgba(255,215,64,.05)}
+  .lb-item.top-2{border-color:rgba(192,192,192,.2);background:rgba(192,192,192,.03)}
+  .lb-item.top-3{border-color:rgba(205,127,50,.2);background:rgba(205,127,50,.03)}
+  .lb-rank{font-size:.85rem;font-weight:800;color:var(--pink);min-width:36px;text-align:center}
+  .top-1 .lb-rank{color:var(--gold)}
+  .top-2 .lb-rank{color:#c0c0c0}
+  .top-3 .lb-rank{color:#cd7f32}
+  .lb-avatar{width:28px;height:28px;border-radius:50%;background:var(--surface2);object-fit:cover;flex-shrink:0}
+  .lb-info{flex:1;min-width:0}
+  .lb-word{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-player{font-size:.6rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-bar{width:60px;height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;flex-shrink:0}
+  .lb-bar-fill{height:100%;border-radius:3px;background:var(--gradient);transition:width .4s ease}
+  .lb-score{font-size:.65rem;font-weight:700;color:var(--text2);min-width:38px;text-align:right}
+  .lb-empty{text-align:center;color:var(--text2);padding:30px 10px;font-size:.8rem}
+
+  /* ── Comments ── */
+  .chat-panel{width:280px;display:flex;flex-direction:column;min-width:0;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+  .chat-title{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .chat-feed{flex:1;overflow-y:auto;padding:6px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .chat-item{display:flex;align-items:flex-start;gap:6px;padding:4px 6px;border-radius:6px;margin-bottom:3px;font-size:.75rem;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+  .chat-item.valid{background:rgba(0,200,83,.06)}
+  .chat-item.invalid{opacity:.5}
+  .chat-item.duplicate{background:rgba(255,215,64,.05)}
+  .chat-item.pending{background:rgba(0,229,255,.04)}
+  .chat-avatar{width:22px;height:22px;border-radius:50%;background:var(--surface2);object-fit:cover;flex-shrink:0;margin-top:1px}
+  .chat-body{flex:1;min-width:0}
+  .chat-user{font-weight:700;color:var(--pink);font-size:.7rem}
+  .chat-text{color:var(--text);word-break:break-word}
+  .chat-score{font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(254,44,85,.12);color:var(--pink);margin-left:4px;white-space:nowrap}
+  .chat-input-wrap{padding:6px 8px;border-top:1px solid var(--border);display:flex;gap:4px;flex-shrink:0}
+  .chat-input-wrap input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.75rem;outline:none}
+  .chat-input-wrap input:focus{border-color:var(--pink)}
+  .chat-input-wrap .btn{padding:6px 10px}
+
+  /* ── Winner overlay ── */
+  .winner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:1000;flex-direction:column;padding:20px}
+  .winner-overlay.active{display:flex}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:1001}
+  .winner-card{background:var(--surface);border:2px solid var(--gold);border-radius:20px;padding:30px 40px;text-align:center;animation:bounceIn .5s ease;box-shadow:0 0 80px rgba(255,215,64,.15);max-width:420px;width:100%;z-index:1002}
+  @keyframes bounceIn{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+  .w-trophy{font-size:3rem;margin-bottom:6px}
+  .w-title{font-size:1.4rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .w-word{font-size:2.4rem;font-weight:900;color:var(--gold);margin:12px 0;letter-spacing:2px;text-transform:uppercase}
+  .w-player-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0}
+  .w-player-avatar{width:44px;height:44px;border-radius:50%;border:3px solid var(--gold);object-fit:cover;background:var(--surface2)}
+  .w-player-info{text-align:left}
+  .w-player-name{font-size:1rem;font-weight:700;color:var(--text)}
+  .w-player-user{font-size:.75rem;color:var(--text2)}
+  .w-stats{font-size:.75rem;color:var(--text2);margin-top:6px}
+  .w-countdown{font-size:.85rem;font-weight:700;color:var(--cyan);margin-top:12px}
+  .w-session{margin-top:14px}
+  .w-session-title{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .w-session-list{display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto}
+  .w-session-item{display:flex;align-items:center;gap:6px;font-size:.7rem;padding:3px 8px;background:var(--surface2);border-radius:6px}
+  .w-session-item img{width:18px;height:18px;border-radius:50%;object-fit:cover}
+  .w-session-item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .w-session-item .pts{color:var(--cyan);font-weight:700}
+  .w-skip{margin-top:14px}
+
+  /* ── Responsive ── */
+  @media(max-width:700px){
+    .content{padding:8px 12px 12px}
+    .word-section{padding:10px 12px}
+    .stats-row{padding:0 12px}
+    .countdown{margin:0 12px}
+    .best-guess{margin:8px 12px 0}
+    .tabs{display:flex}
+    .chat-panel{display:none;width:100%;border:none;border-radius:0;background:transparent}
+    .chat-panel.mobile-active{display:flex;flex:1}
+    .lb-panel.mobile-hidden{display:none}
+    .letter-slot{width:28px;height:36px;font-size:1rem}
+    .word-box{padding:14px 10px}
+    .header{padding:6px 12px}
+    .header-btns .btn{padding:4px 8px;font-size:.6rem}
+    .lb-bar{width:40px}
+    .chat-panel{border-radius:var(--radius)}
+  }
+  @media(max-width:400px){
+    .letter-slot{width:24px;height:30px;font-size:.85rem;border-radius:5px}
+    .word-blanks{gap:4px}
+    .stat .num{font-size:1rem}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">CONTEXTO</span>
+  <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+  <div class="header-right">
+    <div class="conn-dot" id="connDot"></div>
+    <span class="conn-label" id="connLabel">Disconnected</span>
+    <div class="header-btns">
+      <button class="btn btn-hint" onclick="sendHint()">Hint</button>
+      <button class="btn btn-skip" onclick="skipRound()">Skip</button>
+      <button class="btn btn-obs" onclick="document.body.classList.toggle('obs-mode')">OBS</button>
+    </div>
+  </div>
+</div>
+
+<div class="word-section">
+  <div class="word-box">
+    <div class="word-label">Guess the Secret Word</div>
+    <div class="word-blanks" id="wordBlanks"></div>
+    <div class="word-meta">
+      <span id="wordLetterCount"></span>
+      <span id="hintCount" style="display:none"></span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="num" id="statGuesses">0</div><div class="lbl">Guesses</div></div>
+  <div class="stat"><div class="num" id="statWords">0</div><div class="lbl">Words</div></div>
+  <div class="stat"><div class="num" id="statPlayers">0</div><div class="lbl">Players</div></div>
+</div>
+
+<div class="countdown" id="countdownBar"></div>
+
+<div class="best-guess" id="bestGuess">
+  <img class="avatar" id="bestAvatar" src="" alt="">
+  <div class="rank-num" id="bestRank">#-</div>
+  <div class="info">
+    <div class="word" id="bestWord">-</div>
+    <div class="player-name" id="bestPlayer">-</div>
+  </div>
+</div>
+
+<div class="tabs" id="mobileTabs">
+  <div class="tab active" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</div>
+  <div class="tab" data-tab="chat" onclick="switchTab('chat')">Comments</div>
+</div>
+
+<div class="content">
+  <div class="lb-panel" id="lbPanel">
+    <div class="lb-title">Leaderboard</div>
+    <div class="lb-list" id="lbList">
+      <div class="lb-empty">Waiting for guesses...</div>
+    </div>
+  </div>
+
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-title">Live Comments</div>
+    <div class="chat-feed" id="chatFeed"></div>
+    <div class="chat-input-wrap">
+      <input type="text" id="manualInput" placeholder="player:word" autocomplete="off"
+        onkeydown="if(event.key==='Enter')sendManual()">
+      <button class="btn btn-hint" onclick="sendManual()">Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="winner-overlay" id="winnerOverlay">
+  <canvas id="confetti"></canvas>
+  <div class="winner-card">
+    <div class="w-trophy">🏆</div>
+    <div class="w-title">WORD FOUND!</div>
+    <div class="w-word" id="winnerWord">-</div>
+    <div class="w-player-row">
+      <img class="w-player-avatar" id="winnerAvatar" src="" alt="">
+      <div class="w-player-info">
+        <div class="w-player-name" id="winnerNickname">-</div>
+        <div class="w-player-user" id="winnerUsername">-</div>
+      </div>
+    </div>
+    <div class="w-stats">after <strong id="winnerGuessCount">0</strong> guesses</div>
+    <div class="w-countdown" id="winnerCountdown"></div>
+    <div class="w-session" id="winnerSession"></div>
+    <button class="btn btn-skip w-skip" onclick="closeWinner()">Skip to Next</button>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────
+let wordLength = 0;
+let revealedHints = {};
+const playerCache = {}; // username -> {nickname, profilePic}
+
+// ── WebSocket ────────────────────────────────────────────────────────────
+const WS_URL = `ws://${location.hostname||'localhost'}:${location.port||8080}`;
+let ws = null, reconnTimer = null;
+
+function wsConnect() {
+  if (ws && ws.readyState <= 1) return;
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => clearTimeout(reconnTimer);
+  ws.onclose = () => { reconnTimer = setTimeout(wsConnect, 2000); };
+  ws.onerror = () => {};
+  ws.onmessage = (e) => { try { handle(JSON.parse(e.data)); } catch(er) { console.error(er); } };
+}
+function wsSend(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+
+// ── Message handler ──────────────────────────────────────────────────────
+let countdownInterval = null;
+
+function handle(msg) {
+  switch (msg.type) {
+    case 'init':
+      setConn(msg.connected, msg.username);
+      updateStats(msg.stats);
+      renderLB(msg.leaderboard);
+      setWord(msg.wordLength);
+      break;
+    case 'status':
+      setConn(msg.status === 'connected', msg.username);
+      if (msg.status === 'error') addChat('System', null, null, msg.message, 'invalid');
+      break;
+    case 'comment':
+      cachePlayer(msg.username, msg.nickname, msg.profilePic);
+      if (/^[a-zA-Z]{2,20}$/.test(msg.comment.trim())) {
+        wsSend({ action:'guess', word:msg.comment.trim(), player:msg.username, nickname:msg.nickname, profilePic:msg.profilePic });
+        addChat(msg.username, msg.nickname, msg.profilePic, msg.comment, 'pending');
+      } else {
+        addChat(msg.username, msg.nickname, msg.profilePic, msg.comment, 'invalid');
+      }
+      break;
+    case 'guess':
+      updateStats(msg.stats);
+      renderLB(msg.leaderboard);
+      markChat(msg.entry.word, msg.entry.rank);
+      cachePlayer(msg.entry.player, msg.entry.nickname, msg.entry.profilePic);
+      break;
+    case 'duplicate':
+      addChat(msg.player, null, null, `"${msg.word}" already guessed`, 'duplicate');
+      break;
+    case 'hint':
+      showHint(msg.hint, msg.revealed, msg.total);
+      break;
+    case 'winner':
+      cachePlayer(msg.player, null, null);
+      showWinner(msg);
+      break;
+    case 'newRound':
+      clearInterval(countdownInterval);
+      el('countdownBar').classList.remove('visible');
+      el('winnerOverlay').classList.remove('active');
+      updateStats(msg.stats);
+      renderLB(msg.leaderboard);
+      setWord(msg.wordLength);
+      revealedHints = {};
+      el('chatFeed').innerHTML = '';
+      el('bestGuess').classList.remove('visible');
+      addChat('System', null, null, 'New round! Guess the word!', 'valid');
+      break;
+    case 'maxGuesses':
+      addChat('System', null, null, 'Max guesses! New word coming...', 'invalid');
+      break;
+    case 'gift':
+      cachePlayer(msg.username, msg.nickname, msg.profilePic);
+      addChat(msg.username, msg.nickname, msg.profilePic, `sent ${msg.giftName}!`, 'valid');
+      break;
+  }
+}
+
+function cachePlayer(username, nickname, pic) {
+  if (!username) return;
+  if (!playerCache[username]) playerCache[username] = {};
+  if (nickname) playerCache[username].nickname = nickname;
+  if (pic) playerCache[username].profilePic = pic;
+}
+function getPlayer(username) {
+  return playerCache[username] || { nickname: username, profilePic: '' };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function setConn(on, user) {
+  el('connDot').classList.toggle('connected', on);
+  el('connLabel').textContent = on ? `@${user}` : 'Disconnected';
+}
+
+function updateStats(s) {
+  if (!s) return;
+  el('statGuesses').textContent = s.totalGuesses;
+  el('statWords').textContent = s.uniqueWords;
+  el('statPlayers').textContent = s.players;
+}
+
+// ── Word blanks ──────────────────────────────────────────────────────────
+function setWord(len) {
+  wordLength = len || 0;
+  const wrap = el('wordBlanks');
+  wrap.innerHTML = '';
+  for (let i = 0; i < wordLength; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'letter-slot';
+    slot.id = `slot-${i}`;
+    slot.textContent = revealedHints[i] || '';
+    if (revealedHints[i]) slot.classList.add('revealed');
+    wrap.appendChild(slot);
+  }
+  el('wordLetterCount').textContent = wordLength ? `${wordLength} letters` : '';
+  el('hintCount').style.display = 'none';
+}
+
+function showHint(hint, revealed, total) {
+  const letters = hint.split(' ');
+  letters.forEach((ch, i) => {
+    if (ch !== '_') {
+      revealedHints[i] = ch;
+      const slot = el(`slot-${i}`);
+      if (slot) {
+        slot.textContent = ch.toUpperCase();
+        slot.classList.add('revealed');
+      }
+    }
+  });
+  const hc = el('hintCount');
+  hc.textContent = `${revealed}/${total} revealed`;
+  hc.style.display = 'inline-flex';
+}
+
+// ── Leaderboard ──────────────────────────────────────────────────────────
+function renderLB(lb) {
+  const list = el('lbList');
+  if (!lb || !lb.length) {
+    list.innerHTML = '<div class="lb-empty">Waiting for guesses...</div>';
+    el('bestGuess').classList.remove('visible');
+    return;
+  }
+
+  const best = lb[0];
+  const bp = getPlayer(best.player);
+  el('bestGuess').classList.add('visible');
+  el('bestRank').textContent = `#${best.rank}`;
+  el('bestWord').textContent = best.word;
+  el('bestPlayer').textContent = bp.nickname || best.player;
+  el('bestAvatar').src = bp.profilePic || best.profilePic || '';
+  el('bestAvatar').style.display = (bp.profilePic || best.profilePic) ? 'block' : 'none';
+
+  const maxRank = Math.max(...lb.map(e => e.rank), 1);
+
+  list.innerHTML = lb.map((e, i) => {
+    const p = getPlayer(e.player);
+    const pic = p.profilePic || e.profilePic || '';
+    const name = p.nickname || e.nickname || e.player;
+    const pct = Math.max(3, Math.round((1 - e.rank / (maxRank + 1)) * 100));
+    const topCls = i < 3 ? ` top-${i+1}` : '';
+    return `<div class="lb-item${topCls}">
+      <div class="lb-rank">#${e.rank}</div>
+      ${pic ? `<img class="lb-avatar" src="${esc(pic)}" alt="" onerror="this.style.display='none'">` : '<div class="lb-avatar"></div>'}
+      <div class="lb-info">
+        <div class="lb-word">${esc(e.word)}</div>
+        <div class="lb-player">${esc(name)} <span style="color:var(--text2);opacity:.6">@${esc(e.player)}</span></div>
+      </div>
+      <div class="lb-bar"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
+      <div class="lb-score">${(e.similarity*100).toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────
+const pendingChats = new Map();
+
+function addChat(user, nickname, pic, text, cls) {
+  const p = getPlayer(user);
+  const avatar = pic || p.profilePic || '';
+  const displayName = nickname || p.nickname || user;
+
+  const feed = el('chatFeed');
+  const div = document.createElement('div');
+  div.className = `chat-item ${cls}`;
+  div.innerHTML = `
+    ${avatar ? `<img class="chat-avatar" src="${esc(avatar)}" alt="" onerror="this.style.display='none'">` : '<div class="chat-avatar"></div>'}
+    <div class="chat-body">
+      <span class="chat-user">${esc(displayName)}</span>
+      <span class="chat-text">${esc(text)}</span>
+    </div>`;
+
+  if (cls === 'pending') pendingChats.set(text.trim().toLowerCase(), div);
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 200) feed.removeChild(feed.firstChild);
+}
+
+function markChat(word, rank) {
+  const div = pendingChats.get(word);
+  if (div) {
+    div.classList.remove('pending');
+    div.classList.add('valid');
+    div.querySelector('.chat-body').innerHTML += `<span class="chat-score">#${rank}</span>`;
+    pendingChats.delete(word);
+  }
+}
+
+// ── Winner ───────────────────────────────────────────────────────────────
+function showWinner(msg) {
+  const p = getPlayer(msg.player);
+  el('winnerWord').textContent = msg.word.toUpperCase();
+  el('winnerNickname').textContent = p.nickname || msg.player;
+  el('winnerUsername').textContent = `@${msg.player}`;
+  el('winnerAvatar').src = p.profilePic || '';
+  el('winnerAvatar').style.display = p.profilePic ? 'block' : 'none';
+  el('winnerGuessCount').textContent = msg.totalGuesses;
+
+  // Session scores
+  const sess = el('winnerSession');
+  if (msg.sessionScores && Object.keys(msg.sessionScores).length) {
+    const sorted = Object.entries(msg.sessionScores).sort((a,b) => b[1]-a[1]).slice(0,8);
+    sess.innerHTML = `<div class="w-session-title">Session Leaderboard</div><div class="w-session-list">` +
+      sorted.map(([u, s]) => {
+        const pp = getPlayer(u);
+        return `<div class="w-session-item">
+          ${pp.profilePic ? `<img src="${esc(pp.profilePic)}" alt="" onerror="this.style.display='none'">` : ''}
+          <span class="name">${esc(pp.nickname||u)}</span>
+          <span class="pts">${s}</span>
+        </div>`;
+      }).join('') + '</div>';
+  } else {
+    sess.innerHTML = '';
+  }
+
+  el('winnerOverlay').classList.add('active');
+  launchConfetti();
+
+  // Countdown
+  if (msg.nextRoundIn) {
+    let rem = Math.ceil(msg.nextRoundIn / 1000);
+    const cd = el('winnerCountdown');
+    cd.textContent = `Next word in ${rem}s`;
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      rem--;
+      if (rem <= 0) { clearInterval(countdownInterval); cd.textContent = 'Starting...'; }
+      else cd.textContent = `Next word in ${rem}s`;
+    }, 1000);
+  }
+}
+
+function closeWinner() {
+  el('winnerOverlay').classList.remove('active');
+  clearInterval(countdownInterval);
+  skipRound();
+}
+
+// ── Confetti ─────────────────────────────────────────────────────────────
+function launchConfetti() {
+  const c = el('confetti'), ctx = c.getContext('2d');
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  const colors = ['#fe2c55','#ff6f3c','#ffd740','#00e5ff','#00c853','#e040fb','#b388ff'];
+  const ps = Array.from({length:150}, () => ({
+    x:Math.random()*c.width, y:Math.random()*c.height-c.height,
+    w:Math.random()*8+3, h:Math.random()*5+2,
+    color:colors[Math.floor(Math.random()*colors.length)],
+    vx:(Math.random()-.5)*5, vy:Math.random()*3+2,
+    rot:Math.random()*360, vr:(Math.random()-.5)*12
+  }));
+  let f=0;
+  (function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    let alive=false;
+    for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.rot+=p.vr;if(p.y<c.height+20)alive=true;
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
+    if(alive&&++f<350)requestAnimationFrame(draw);else ctx.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────
+function sendHint() { wsSend({action:'hint'}); }
+function skipRound() { wsSend({action:'newRound'}); }
+
+function sendManual() {
+  const input = el('manualInput');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  let player = 'host', word = val;
+  if (val.includes(':')) { const p = val.split(':'); player = p[0].trim()||'host'; word = p.slice(1).join(':').trim(); }
+  if (/^[a-zA-Z]{2,20}$/.test(word)) {
+    wsSend({action:'guess', word, player});
+    addChat(player, null, null, word, 'pending');
+  } else {
+    addChat(player, null, null, word, 'invalid');
+  }
+}
+
+// ── Mobile tabs ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  el('lbPanel').classList.toggle('mobile-hidden', tab !== 'leaderboard');
+  el('chatPanel').classList.toggle('mobile-active', tab === 'chat');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+wsConnect();
+</script>
+</body>
+</html>

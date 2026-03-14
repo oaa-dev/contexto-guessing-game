@@ -1,0 +1,15 @@
+{
+  "name": "tiktok-contexto",
+  "version": "1.0.0",
+  "description": "TikTok Live Contexto word-guessing game with real-time leaderboard",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js"
+  },
+  "dependencies": {
+    "cohere-ai": "^7.14.0",
+    "dotenv": "^16.4.7",
+    "tiktok-live-connector": "^1.1.8",
+    "ws": "^8.18.0"
+  }
+}
