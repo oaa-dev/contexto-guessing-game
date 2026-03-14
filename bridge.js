@@ -121,8 +121,8 @@ const MANIFEST = JSON.stringify({
   background_color: '#0a0a0f',
   theme_color: '#fe2c55',
   icons: [
-    { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-    { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+    { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
   ],
 });
 
@@ -136,34 +136,70 @@ self.addEventListener('fetch', e => {
 });
 `;
 
-/** Generate a solid-color PNG icon on the fly (no external file needed) */
+/**
+ * Generate a valid PNG icon using raw bytes (no dependencies).
+ * Creates a solid #fe2c55 pink square at the requested size.
+ */
 function generateIcon(size) {
-  // Minimal valid PNG: solid pink square
-  const { createCanvas } = (() => {
-    try { return require('canvas'); } catch { return { createCanvas: null }; }
-  })();
-  if (createCanvas) {
-    const c = createCanvas(size, size);
-    const ctx = c.getContext('2d');
-    // Gradient background
-    const g = ctx.createLinearGradient(0, 0, size, size);
-    g.addColorStop(0, '#fe2c55');
-    g.addColorStop(1, '#ff6f3c');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, size, size, size * 0.2);
-    ctx.fill();
-    // Letter C
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${size * 0.55}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('C', size / 2, size / 2 + size * 0.03);
-    return c.toBuffer('image/png');
+  const zlib = require('zlib');
+
+  // Build raw RGBA pixel data: solid pink
+  const r = 0xfe, g = 0x2c, b = 0x55, a = 0xff;
+  const rowBytes = 1 + size * 4; // filter byte + RGBA per pixel
+  const raw = Buffer.alloc(rowBytes * size);
+  for (let y = 0; y < size; y++) {
+    const off = y * rowBytes;
+    raw[off] = 0; // filter: none
+    for (let x = 0; x < size; x++) {
+      const p = off + 1 + x * 4;
+      raw[p] = r; raw[p+1] = g; raw[p+2] = b; raw[p+3] = a;
+    }
   }
-  // Fallback: 1x1 pink PNG
-  return Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAQAGAgL/QVKzHQAAAABJRU5ErkJggg==', 'base64');
+
+  const compressed = zlib.deflateSync(raw);
+
+  // PNG file structure
+  const signature = Buffer.from([137,80,78,71,13,10,26,10]);
+
+  function chunk(type, data) {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const typeB = Buffer.from(type);
+    const crcData = Buffer.concat([typeB, data]);
+    const crc = Buffer.alloc(4);
+    crc.writeInt32BE(crc32(crcData));
+    return Buffer.concat([len, typeB, data, crc]);
+  }
+
+  // CRC32
+  function crc32(buf) {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) {
+      c ^= buf[i];
+      for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0);
+    }
+    return (c ^ 0xffffffff) | 0;
+  }
+
+  // IHDR
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // color type: RGBA
+  ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+
+  return Buffer.concat([
+    signature,
+    chunk('IHDR', ihdr),
+    chunk('IDAT', compressed),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
+
+// Pre-generate icons at startup so they're fast to serve
+const icon192 = generateIcon(192);
+const icon512 = generateIcon(512);
 
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/overlay.html') {
@@ -184,11 +220,11 @@ const httpServer = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/javascript' });
     res.end(SW_JS);
   } else if (req.url === '/icon-192.png') {
-    res.writeHead(200, { 'Content-Type': 'image/png' });
-    res.end(generateIcon(192));
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+    res.end(icon192);
   } else if (req.url === '/icon-512.png') {
-    res.writeHead(200, { 'Content-Type': 'image/png' });
-    res.end(generateIcon(512));
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+    res.end(icon512);
   } else {
     res.writeHead(404);
     res.end('Not found');
