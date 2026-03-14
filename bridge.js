@@ -1,4 +1,3 @@
-require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +6,6 @@ const { WebcastPushConnection } = require('tiktok-live-connector');
 const { scoreWord, isValidWord, clearCache } = require('./similarity');
 
 const PORT = parseInt(process.env.PORT, 10) || 8080;
-const TIKTOK_USERNAME = process.env.TIKTOK_USERNAME || '';
 const AUTO_ROUND_DELAY = 10000; // 10s celebration before auto new round
 
 // ── Datamuse word pool ─────────────────────────────────────────────────────
@@ -114,6 +112,59 @@ function ts() {
 
 // ── HTTP server (serves overlay.html) ──────────────────────────────────────
 
+const MANIFEST = JSON.stringify({
+  name: 'TikTok Contexto',
+  short_name: 'Contexto',
+  description: 'TikTok Live word-guessing game',
+  start_url: '/',
+  display: 'standalone',
+  background_color: '#0a0a0f',
+  theme_color: '#fe2c55',
+  icons: [
+    { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+  ],
+});
+
+const SW_JS = `
+const CACHE = 'contexto-v1';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
+self.addEventListener('fetch', e => {
+  if (e.request.url.includes('/ws') || e.request.method !== 'GET') return;
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});
+`;
+
+/** Generate a solid-color PNG icon on the fly (no external file needed) */
+function generateIcon(size) {
+  // Minimal valid PNG: solid pink square
+  const { createCanvas } = (() => {
+    try { return require('canvas'); } catch { return { createCanvas: null }; }
+  })();
+  if (createCanvas) {
+    const c = createCanvas(size, size);
+    const ctx = c.getContext('2d');
+    // Gradient background
+    const g = ctx.createLinearGradient(0, 0, size, size);
+    g.addColorStop(0, '#fe2c55');
+    g.addColorStop(1, '#ff6f3c');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, size * 0.2);
+    ctx.fill();
+    // Letter C
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${size * 0.55}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('C', size / 2, size / 2 + size * 0.03);
+    return c.toBuffer('image/png');
+  }
+  // Fallback: 1x1 pink PNG
+  return Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAQAGAgL/QVKzHQAAAABJRU5ErkJggg==', 'base64');
+}
+
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/overlay.html') {
     const filePath = path.join(__dirname, 'overlay.html');
@@ -126,6 +177,18 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(data);
     });
+  } else if (req.url === '/manifest.json') {
+    res.writeHead(200, { 'Content-Type': 'application/manifest+json' });
+    res.end(MANIFEST);
+  } else if (req.url === '/sw.js') {
+    res.writeHead(200, { 'Content-Type': 'application/javascript' });
+    res.end(SW_JS);
+  } else if (req.url === '/icon-192.png') {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(generateIcon(192));
+  } else if (req.url === '/icon-512.png') {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(generateIcon(512));
   } else {
     res.writeHead(404);
     res.end('Not found');
@@ -397,6 +460,16 @@ wss.on('connection', (ws) => {
     }
 
     switch (msg.action) {
+      case 'connect':
+        if (typeof msg.username === 'string' && msg.username.trim()) {
+          await connectTikTok(msg.username.trim());
+        }
+        break;
+
+      case 'disconnect':
+        await disconnectTikTok();
+        break;
+
       case 'newRound':
         await newRound();
         break;
@@ -448,14 +521,6 @@ async function start() {
     LOG.info(`Server running on http://localhost:${PORT}`);
     LOG.info(`WebSocket on ws://localhost:${PORT}`);
     LOG.info('Open http://localhost:' + PORT + ' in your browser for the overlay');
-
-    // Auto-connect to TikTok if username is set
-    if (TIKTOK_USERNAME) {
-      LOG.info(`Auto-connecting to TikTok: @${TIKTOK_USERNAME}`);
-      await connectTikTok(TIKTOK_USERNAME);
-    } else {
-      LOG.warn('No TIKTOK_USERNAME set in .env — TikTok connection skipped');
-    }
 
     // Auto-start first round
     await newRound();
