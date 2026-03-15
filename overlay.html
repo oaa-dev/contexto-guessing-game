@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Contexto">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.svg">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -20,88 +20,72 @@
     --radius:12px;
   }
   html,body{height:100%;overflow:hidden}
-  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:grid;grid-template-columns:1fr 280px;height:100vh}
 
-  /* ── Header ── */
-  .header{background:var(--gradient);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 2px 20px rgba(254,44,85,.25)}
-  .logo{font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:1px}
-  .live-badge{background:rgba(0,0,0,.35);color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:1px}
-  .live-dot{width:7px;height:7px;background:#fff;border-radius:50%;animation:pulse 1.4s infinite}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
-  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  /* ── Left column ── */
+  .left-col{display:flex;flex-direction:column;overflow:hidden}
+  .info-bar{display:flex;gap:6px;padding:8px 16px;flex-shrink:0;flex-wrap:wrap;align-items:center}
   .conn-dot{width:8px;height:8px;border-radius:50%;background:#555;transition:all .3s}
   .conn-dot.connected{background:var(--green);box-shadow:0 0 8px var(--green)}
-  .conn-label{font-size:.7rem;color:rgba(255,255,255,.8)}
-  .gear-btn{background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;opacity:.8;transition:opacity .2s;padding:4px}
+  .conn-label{font-size:.65rem;color:var(--text2)}
+  .gear-btn{background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;opacity:.7;transition:opacity .2s;padding:2px}
   .gear-btn:hover{opacity:1}
-
-  /* ── Info bar ── */
-  .info-bar{display:flex;gap:6px;padding:8px 16px;flex-shrink:0;flex-wrap:wrap;align-items:center}
   .info-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.7rem;color:var(--text2);display:flex;align-items:center;gap:4px;white-space:nowrap}
   .info-chip .val{color:var(--text);font-weight:700}
   .info-chip.timer .val{color:var(--cyan)}
   .info-chip.last-word .val{color:var(--gold)}
 
-  /* ── Word Display ── */
-  .word-section{padding:12px 16px;flex-shrink:0}
-  .word-box{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px 16px;text-align:center}
-  .word-label{font-size:.6rem;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+  /* ── Word Display (center of left column) ── */
+  .word-panel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px;min-width:0}
+  .word-box{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:28px 24px;text-align:center;width:100%;max-width:500px}
+  .word-label{font-size:.6rem;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px}
   .word-blanks{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
   .letter-slot{width:36px;height:44px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:var(--cyan);font-family:monospace;transition:all .3s}
   .letter-slot.revealed{border-color:var(--gold);color:var(--gold);background:rgba(255,215,64,.08)}
-  .word-meta{margin-top:8px;font-size:.7rem;color:var(--text2);display:flex;justify-content:center;gap:14px}
+  .word-meta{margin-top:10px;font-size:.7rem;color:var(--text2);display:flex;justify-content:center;gap:14px}
+
+  /* ── Right column (guesses + leaderboard) ── */
+  .right-col{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden}
+  .guesses-section{flex:1;display:flex;flex-direction:column;min-height:0}
+  .guesses-header{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:10px 12px 6px;flex-shrink:0;border-bottom:1px solid var(--border)}
+  .guesses-list{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .guess-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);animation:guessIn .3s ease;font-size:.75rem;transition:opacity .5s,transform .5s}
+  @keyframes guessIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  .guess-item.fading{opacity:0;transform:translateX(-10px)}
+  .guess-avatar{width:22px;height:22px;border-radius:50%;background:var(--border);object-fit:cover;flex-shrink:0}
+  .guess-user{color:var(--text2);font-weight:600;flex-shrink:0;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .guess-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .guess-rank{font-weight:800;font-size:.7rem;flex-shrink:0;padding:2px 6px;border-radius:4px}
+  .guess-rank.hot{color:#ff0050;background:rgba(255,0,80,.1)}
+  .guess-rank.warm{color:#ff6b35;background:rgba(255,107,53,.1)}
+  .guess-rank.cool{color:#0088ff;background:rgba(0,136,255,.1)}
+  .guess-rank.cold{color:var(--text2);background:var(--surface)}
+  .guesses-empty{text-align:center;color:var(--text2);padding:20px 10px;font-size:.75rem}
 
   /* ── Leaderboard ── */
-  .lb-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0 16px 16px}
-  .lb-header{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding-bottom:8px;flex-shrink:0}
-  .lb-list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;display:flex;flex-direction:column;gap:6px}
-  .lb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);animation:slideIn .3s ease}
+  .lb-wrap{flex:1;border-top:1px solid var(--border);display:flex;flex-direction:column;padding:0 8px 8px;min-height:0;overflow:hidden}
+  .lb-header{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 4px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .lb-list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;display:flex;flex-direction:column;gap:4px}
+  .lb-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);animation:slideIn .3s ease}
   @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .lb-item.top-1{border-color:rgba(255,215,64,.4);background:linear-gradient(135deg,rgba(255,215,64,.08),rgba(255,215,64,.02))}
   .lb-item.top-2{border-color:rgba(192,192,192,.3);background:rgba(192,192,192,.04)}
   .lb-item.top-3{border-color:rgba(205,127,50,.3);background:rgba(205,127,50,.04)}
-  .lb-pos{font-size:.75rem;font-weight:800;min-width:24px;text-align:center;color:var(--text2)}
+  .lb-pos{font-size:.75rem;font-weight:800;min-width:22px;text-align:center;color:var(--text2)}
   .top-1 .lb-pos{color:var(--gold)}
   .top-2 .lb-pos{color:#c0c0c0}
   .top-3 .lb-pos{color:#cd7f32}
-  .lb-avatar{width:36px;height:36px;border-radius:50%;background:var(--surface2);object-fit:cover;flex-shrink:0;border:2px solid var(--border)}
+  .lb-avatar{width:26px;height:26px;border-radius:50%;background:var(--surface2);object-fit:cover;flex-shrink:0;border:2px solid var(--border)}
   .top-1 .lb-avatar{border-color:var(--gold)}
-  .top-2 .lb-avatar{border-color:#c0c0c0}
-  .top-3 .lb-avatar{border-color:#cd7f32}
   .lb-details{flex:1;min-width:0}
-  .lb-username{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .lb-handle{font-size:.6rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .lb-word-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;color:var(--text);text-align:center;min-width:70px}
-  .lb-score{font-size:.7rem;font-weight:800;min-width:32px;text-align:right;padding:3px 8px;border-radius:4px}
+  .lb-username{font-size:.7rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-word{font-size:.55rem;color:var(--text2)}
+  .lb-score{font-size:.75rem;font-weight:800;min-width:32px;text-align:right;padding:2px 6px;border-radius:4px}
   .lb-score.hot{color:#ff0050;background:rgba(255,0,80,.1)}
   .lb-score.warm{color:#ff6b35;background:rgba(255,107,53,.1)}
   .lb-score.cool{color:#0088ff;background:rgba(0,136,255,.1)}
-  .lb-score.cold{color:var(--text2);background:var(--surface2)}
-  .lb-empty{text-align:center;color:var(--text2);padding:40px 10px;font-size:.85rem}
-
-  /* ── Settings Modal ── */
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
-  .modal-bg.active{display:flex}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:360px;animation:slideIn .25s ease}
-  .modal-title{font-size:1rem;font-weight:800;margin-bottom:16px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .modal-group{margin-bottom:14px}
-  .modal-label{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-  .modal-row{display:flex;gap:6px}
-  .modal-input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.85rem;outline:none}
-  .modal-input:focus{border-color:var(--pink)}
-  .modal-input::placeholder{color:var(--text2)}
-  .btn{padding:8px 16px;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
-  .btn:active{transform:scale(.96)}
-  .btn-primary{background:var(--gradient);color:#fff}
-  .btn-danger{background:#cc2244;color:#fff}
-  .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-  .btn-gold{background:var(--gold);color:#000}
-  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-  .modal-actions{display:flex;gap:6px;flex-wrap:wrap}
-  .modal-actions .btn{flex:1;min-width:0}
-  .modal-status{font-size:.7rem;color:var(--text2);margin-top:6px;text-align:center}
-  .modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer}
-  .modal{position:relative}
+  .lb-score.cold{color:var(--text2);background:var(--surface)}
+  .lb-empty{text-align:center;color:var(--text2);padding:16px 10px;font-size:.75rem}
 
   /* ── Winner overlay ── */
   .winner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:1000;flex-direction:column;padding:20px}
@@ -127,17 +111,36 @@
   .w-session-item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .w-session-item .pts{color:var(--cyan);font-weight:700}
 
+  /* ── Settings Modal ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.active{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:380px;animation:slideIn .25s ease;position:relative}
+  .modal-title{font-size:1rem;font-weight:800;margin-bottom:16px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .modal-group{margin-bottom:14px}
+  .modal-label{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .modal-row{display:flex;gap:6px}
+  .modal-input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.85rem;outline:none}
+  .modal-input:focus{border-color:var(--pink)}
+  .modal-input::placeholder{color:var(--text2)}
+  .btn{padding:8px 16px;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:var(--gradient);color:#fff}
+  .btn-danger{background:#cc2244;color:#fff}
+  .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .btn-gold{background:var(--gold);color:#000}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .modal-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .modal-actions .btn{flex:1;min-width:0}
+  .modal-status{font-size:.7rem;color:var(--text2);margin-top:6px;text-align:center}
+  .modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer}
+
   /* ── Responsive ── */
-  @media(max-width:500px){
-    .word-section{padding:8px 12px}
-    .info-bar{padding:6px 12px}
-    .lb-wrap{padding:0 12px 12px}
+  @media(max-width:600px){
+    body{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+    .right-col{border-left:none;border-top:1px solid var(--border)}
+    .word-panel{padding:12px}
+    .word-box{padding:18px 14px}
     .letter-slot{width:28px;height:36px;font-size:1rem}
-    .word-box{padding:14px 10px}
-    .header{padding:8px 12px}
-    .lb-item{padding:8px 10px;gap:8px}
-    .lb-avatar{width:30px;height:30px}
-    .lb-word-badge{min-width:56px;font-size:.7rem;padding:3px 8px}
   }
   @media(max-width:360px){
     .letter-slot{width:22px;height:28px;font-size:.85rem;border-radius:5px}
@@ -147,43 +150,67 @@
 </head>
 <body>
 
-<!-- Header -->
-<div class="header">
-  <span class="logo">CONTEXTO</span>
-  <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-  <div class="header-right">
+<!-- Left column: info + word display -->
+<div class="left-col">
+  <div class="info-bar">
+    <button class="gear-btn" onclick="toggleSettings()">&#9881;</button>
     <div class="conn-dot" id="connDot"></div>
     <span class="conn-label" id="connLabel">Disconnected</span>
-    <button class="gear-btn" onclick="toggleSettings()">&#9881;</button>
+    <div class="info-chip"><span>Guesses</span> <span class="val" id="statGuesses">0</span></div>
+    <div class="info-chip"><span>Words</span> <span class="val" id="statWords">0</span></div>
+    <div class="info-chip"><span>Players</span> <span class="val" id="statPlayers">0</span></div>
+    <div class="info-chip last-word"><span>Last</span> <span class="val" id="lastWordChip">-</span></div>
+    <div class="info-chip timer" id="timerChip" style="display:none"><span class="val" id="timerVal"></span></div>
   </div>
-</div>
-
-<!-- Info bar -->
-<div class="info-bar">
-  <div class="info-chip"><span>Guesses</span> <span class="val" id="statGuesses">0</span></div>
-  <div class="info-chip"><span>Words</span> <span class="val" id="statWords">0</span></div>
-  <div class="info-chip"><span>Players</span> <span class="val" id="statPlayers">0</span></div>
-  <div class="info-chip last-word"><span>Last</span> <span class="val" id="lastWordChip">-</span></div>
-  <div class="info-chip timer" id="timerChip" style="display:none"><span class="val" id="timerVal"></span></div>
-</div>
-
-<!-- Word display -->
-<div class="word-section">
-  <div class="word-box">
-    <div class="word-label">Guess the Secret Word</div>
-    <div class="word-blanks" id="wordBlanks"></div>
-    <div class="word-meta">
-      <span id="wordLetterCount"></span>
-      <span id="hintCount" style="display:none"></span>
+  <div class="word-panel">
+    <div class="word-box">
+      <div class="word-label">Guess the Secret Word</div>
+      <div class="word-blanks" id="wordBlanks"></div>
+      <div class="word-meta">
+        <span id="wordLetterCount"></span>
+        <span id="hintCount" style="display:none"></span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Leaderboard -->
-<div class="lb-wrap">
-  <div class="lb-header">Top 10 Guesses</div>
-  <div class="lb-list" id="lbList">
-    <div class="lb-empty">Waiting for guesses...</div>
+<!-- Right column: guesses feed + leaderboard -->
+<div class="right-col">
+  <div class="guesses-section">
+    <div class="guesses-header">Live Guesses</div>
+    <div class="guesses-list" id="guessesList">
+      <div class="guesses-empty">Waiting for guesses...</div>
+    </div>
+  </div>
+  <div class="lb-wrap">
+    <div class="lb-header">
+      <span>&#127942; Top 10</span>
+      <span id="lbPlayerCount"></span>
+    </div>
+    <div class="lb-list" id="lbList">
+      <div class="lb-empty">Waiting for guesses...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Winner overlay -->
+<div class="winner-overlay" id="winnerOverlay">
+  <canvas id="confetti"></canvas>
+  <div class="winner-card">
+    <div class="w-trophy">&#127942;</div>
+    <div class="w-title">WORD FOUND!</div>
+    <div class="w-word" id="winnerWord">-</div>
+    <div class="w-player-row">
+      <img class="w-player-avatar" id="winnerAvatar" src="" alt="">
+      <div class="w-player-info">
+        <div class="w-player-name" id="winnerNickname">-</div>
+        <div class="w-player-user" id="winnerUsername">-</div>
+      </div>
+    </div>
+    <div class="w-stats">after <strong id="winnerGuessCount">0</strong> guesses</div>
+    <div class="w-countdown" id="winnerCountdown"></div>
+    <div class="w-session" id="winnerSession"></div>
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="closeWinner()">Skip to Next</button>
   </div>
 </div>
 
@@ -225,37 +252,18 @@
   </div>
 </div>
 
-<!-- Winner overlay -->
-<div class="winner-overlay" id="winnerOverlay">
-  <canvas id="confetti"></canvas>
-  <div class="winner-card">
-    <div class="w-trophy">&#127942;</div>
-    <div class="w-title">WORD FOUND!</div>
-    <div class="w-word" id="winnerWord">-</div>
-    <div class="w-player-row">
-      <img class="w-player-avatar" id="winnerAvatar" src="" alt="">
-      <div class="w-player-info">
-        <div class="w-player-name" id="winnerNickname">-</div>
-        <div class="w-player-user" id="winnerUsername">-</div>
-      </div>
-    </div>
-    <div class="w-stats">after <strong id="winnerGuessCount">0</strong> guesses</div>
-    <div class="w-countdown" id="winnerCountdown"></div>
-    <div class="w-session" id="winnerSession"></div>
-    <button class="btn btn-secondary" style="margin-top:14px" onclick="closeWinner()">Skip to Next</button>
-  </div>
-</div>
-
 <script>
 // ── State ────────────────────────────────────────────────────────────────
 let wordLength = 0;
 let revealedHints = {};
 let lastGuessedWord = '-';
 const playerCache = {};
+let guessElements = [];
+const MAX_VISIBLE_GUESSES = 12;
 
 // ── WebSocket ────────────────────────────────────────────────────────────
 const WS_URL = window.location.hostname === 'localhost'
-  ? 'ws://localhost:8080'
+  ? `ws://localhost:${window.location.port || 8080}`
   : `wss://${window.location.host}`;
 let ws = null, reconnTimer = null;
 
@@ -307,6 +315,7 @@ function handle(msg) {
       cachePlayer(msg.entry.player, msg.entry.nickname, msg.entry.profilePic);
       lastGuessedWord = msg.entry.word;
       el('lastWordChip').textContent = msg.entry.word;
+      addGuessToFeed(msg.entry);
       break;
     case 'duplicate':
       break;
@@ -323,10 +332,11 @@ function handle(msg) {
       el('winnerOverlay').classList.remove('active');
       updateStats(msg.stats);
       renderLB(msg.leaderboard);
-      setWord(msg.wordLength);
       revealedHints = {};
+      setWord(msg.wordLength);
       lastGuessedWord = '-';
       el('lastWordChip').textContent = '-';
+      clearGuesses();
       break;
     case 'maxGuesses':
       break;
@@ -400,7 +410,6 @@ function hideTimer() {
 function toggleSettings() {
   el('settingsModal').classList.toggle('active');
 }
-// Close on backdrop click
 el('settingsModal').addEventListener('click', (e) => {
   if (e.target === el('settingsModal')) toggleSettings();
 });
@@ -436,7 +445,12 @@ function showHint(hint, revealed, total) {
   hc.style.display = 'inline-flex';
 }
 
-// ── Leaderboard (top 10, sorted by rank) ────────────────────────────────
+// ── Guesses feed ────────────────────────────────────────────────────────
+function clearGuesses() {
+  guessElements = [];
+  el('guessesList').innerHTML = '<div class="guesses-empty">Waiting for guesses...</div>';
+}
+
 function scoreClass(rank) {
   if (rank <= 50) return 'hot';
   if (rank <= 200) return 'warm';
@@ -444,14 +458,62 @@ function scoreClass(rank) {
   return 'cold';
 }
 
+function addGuessToFeed(entry) {
+  const list = el('guessesList');
+  const empty = list.querySelector('.guesses-empty');
+  if (empty) empty.remove();
+
+  const p = getPlayer(entry.player);
+  const pic = p.profilePic || entry.profilePic || '';
+  const name = p.nickname || entry.nickname || entry.player;
+  const sc = scoreClass(entry.rank);
+
+  const item = document.createElement('div');
+  item.className = 'guess-item';
+
+  const avatarHtml = pic
+    ? `<img class="guess-avatar" src="${esc(pic)}" alt="" onerror="this.style.display='none'">`
+    : '<div class="guess-avatar"></div>';
+
+  item.innerHTML = `
+    ${avatarHtml}
+    <span class="guess-user">@${esc(name)}</span>
+    <span class="guess-text">${esc(entry.word)}</span>
+    <span class="guess-rank ${sc}">#${entry.rank}</span>
+  `;
+
+  list.appendChild(item);
+  guessElements.push(item);
+  list.scrollTop = list.scrollHeight;
+
+  // Fade out after 5s
+  setTimeout(() => {
+    item.classList.add('fading');
+    setTimeout(() => {
+      if (item.parentNode) item.remove();
+      const idx = guessElements.indexOf(item);
+      if (idx > -1) guessElements.splice(idx, 1);
+    }, 500);
+  }, 5000);
+
+  // Keep max visible
+  while (guessElements.length > MAX_VISIBLE_GUESSES) {
+    const old = guessElements.shift();
+    if (old.parentNode) old.remove();
+  }
+}
+
+// ── Leaderboard (top 10, sorted by rank) ────────────────────────────────
 function renderLB(lb) {
   const list = el('lbList');
   if (!lb || !lb.length) {
     list.innerHTML = '<div class="lb-empty">Waiting for guesses...</div>';
+    el('lbPlayerCount').textContent = '';
     return;
   }
 
   const top10 = lb.slice(0, 10);
+  el('lbPlayerCount').textContent = `${lb.length} guesses`;
 
   list.innerHTML = top10.map((e, i) => {
     const p = getPlayer(e.player);
@@ -464,9 +526,8 @@ function renderLB(lb) {
       ${pic ? `<img class="lb-avatar" src="${esc(pic)}" alt="" onerror="this.style.display='none'">` : '<div class="lb-avatar"></div>'}
       <div class="lb-details">
         <div class="lb-username">${esc(name)}</div>
-        <div class="lb-handle">@${esc(e.player)}</div>
+        <div class="lb-word">${esc(e.word)}</div>
       </div>
-      <div class="lb-word-badge">${esc(e.word)}</div>
       <div class="lb-score ${sc}">#${e.rank}</div>
     </div>`;
   }).join('');
@@ -507,7 +568,6 @@ function showWinner(msg) {
     let rem = secs;
     const cd = el('winnerCountdown');
     cd.textContent = `Next word in ${rem}s`;
-    // reuse the timer interval for winner countdown text
     const winInterval = setInterval(() => {
       rem--;
       if (rem <= 0) { clearInterval(winInterval); cd.textContent = 'Starting...'; }
@@ -519,7 +579,6 @@ function showWinner(msg) {
 function closeWinner() {
   el('winnerOverlay').classList.remove('active');
   hideTimer();
-  skipRound();
 }
 
 // ── Confetti ─────────────────────────────────────────────────────────────
@@ -560,12 +619,13 @@ function sendManual() {
   }
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────
-wsConnect();
-
+// ── PWA Service Worker ───────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// ── Init ─────────────────────────────────────────────────────────────────
+wsConnect();
 </script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const { WebcastPushConnection } = require('tiktok-live-connector');
 const { scoreWord, isValidWord, clearCache } = require('./similarity');
 
 const PORT = parseInt(process.env.PORT, 10) || 8080;
-const AUTO_ROUND_DELAY = 10000; // 10s celebration before auto new round
+const AUTO_ROUND_DELAY = 3000; // 3s celebration before auto new round
 
 // ── Datamuse word pool ─────────────────────────────────────────────────────
 
@@ -110,125 +110,46 @@ function ts() {
   return new Date().toISOString().slice(11, 19);
 }
 
-// ── HTTP server (serves overlay.html) ──────────────────────────────────────
+// ── HTTP server ──────────────────────────────────────────────────────────────
 
-const MANIFEST = JSON.stringify({
-  name: 'TikTok Contexto',
-  short_name: 'Contexto',
-  description: 'TikTok Live word-guessing game',
-  start_url: '/',
-  display: 'standalone',
-  background_color: '#0a0a0f',
-  theme_color: '#fe2c55',
-  icons: [
-    { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-    { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-  ],
-});
-
-const SW_JS = `
-const CACHE = 'contexto-v1';
-self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
-self.addEventListener('fetch', e => {
-  if (e.request.url.includes('/ws') || e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-});
-`;
-
-/**
- * Generate a valid PNG icon using raw bytes (no dependencies).
- * Creates a solid #fe2c55 pink square at the requested size.
- */
-function generateIcon(size) {
-  const zlib = require('zlib');
-
-  // Build raw RGBA pixel data: solid pink
-  const r = 0xfe, g = 0x2c, b = 0x55, a = 0xff;
-  const rowBytes = 1 + size * 4; // filter byte + RGBA per pixel
-  const raw = Buffer.alloc(rowBytes * size);
-  for (let y = 0; y < size; y++) {
-    const off = y * rowBytes;
-    raw[off] = 0; // filter: none
-    for (let x = 0; x < size; x++) {
-      const p = off + 1 + x * 4;
-      raw[p] = r; raw[p+1] = g; raw[p+2] = b; raw[p+3] = a;
-    }
-  }
-
-  const compressed = zlib.deflateSync(raw);
-
-  // PNG file structure
-  const signature = Buffer.from([137,80,78,71,13,10,26,10]);
-
-  function chunk(type, data) {
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length);
-    const typeB = Buffer.from(type);
-    const crcData = Buffer.concat([typeB, data]);
-    const crc = Buffer.alloc(4);
-    crc.writeInt32BE(crc32(crcData));
-    return Buffer.concat([len, typeB, data, crc]);
-  }
-
-  // CRC32
-  function crc32(buf) {
-    let c = 0xffffffff;
-    for (let i = 0; i < buf.length; i++) {
-      c ^= buf[i];
-      for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0);
-    }
-    return (c ^ 0xffffffff) | 0;
-  }
-
-  // IHDR
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // color type: RGBA
-  ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
-
-  return Buffer.concat([
-    signature,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', compressed),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
-// Pre-generate icons at startup so they're fast to serve
-const icon192 = generateIcon(192);
-const icon512 = generateIcon(512);
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js':   'application/javascript',
+  '.json': 'application/json',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.ico':  'image/x-icon',
+};
 
 const httpServer = http.createServer((req, res) => {
-  if (req.url === '/' || req.url === '/overlay.html') {
-    const filePath = path.join(__dirname, 'overlay.html');
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(500);
-        res.end('Error loading overlay');
-        return;
-      }
+  const url = req.url.split('?')[0];
+
+  if (url === '/' || url === '/overlay.html') {
+    fs.readFile(path.join(__dirname, 'overlay.html'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Error loading overlay'); return; }
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(data);
     });
-  } else if (req.url === '/manifest.json') {
-    res.writeHead(200, { 'Content-Type': 'application/manifest+json' });
-    res.end(MANIFEST);
-  } else if (req.url === '/sw.js') {
-    res.writeHead(200, { 'Content-Type': 'application/javascript' });
-    res.end(SW_JS);
-  } else if (req.url === '/icon-192.png') {
-    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
-    res.end(icon192);
-  } else if (req.url === '/icon-512.png') {
-    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
-    res.end(icon512);
-  } else {
-    res.writeHead(404);
-    res.end('Not found');
+    return;
   }
+
+  // Serve static files: manifest.json, sw.js, icons/*
+  const safePath = path.normalize(url).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.join(__dirname, safePath);
+
+  if (['/manifest.json', '/sw.js'].includes(url) || url.startsWith('/icons/')) {
+    const ext = path.extname(filePath);
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    fs.readFile(filePath, (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(data);
+    });
+    return;
+  }
+
+  res.writeHead(404);
+  res.end('Not found');
 });
 
 // ── WebSocket server ───────────────────────────────────────────────────────
